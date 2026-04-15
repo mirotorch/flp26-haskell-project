@@ -17,13 +17,15 @@ import Data.List (intercalate)
 import Data.Map.Strict qualified as Map
 import SOLTest.Parser (ParsedHeader (..), emptyHeader)
 import SOLTest.Types
-    ( CategoryReport(..),
-      FilterCriterion(..),
-      FilterSpec(..),
-      TestCaseDefinition(..),
-      TestCaseReport(..),
-      TestCaseType(..),
-      TestResult(..) )
+  ( CategoryReport (..),
+    FilterCriterion (..),
+    FilterSpec (..),
+    TestCaseDefinition (..),
+    TestCaseFile (..),
+    TestCaseReport (..),
+    TestCaseType (..),
+    TestResult (..),
+  )
 import Test.QuickCheck
 
 -- ---------------------------------------------------------------------------

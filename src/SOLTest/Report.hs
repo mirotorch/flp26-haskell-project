@@ -8,11 +8,12 @@ module SOLTest.Report
     groupByCategory,
     computeStats,
     computeHistogram,
-    rateToBin
+    rateToBin,
   )
 where
 
 import Data.Map.Strict (Map)
+import Data.Map.Strict qualified as Map
 import SOLTest.Types
 
 -- ---------------------------------------------------------------------------

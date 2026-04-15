@@ -5,12 +5,13 @@ module SOLTest.FilterSpec
 where
 
 import Data.List (sort)
-import SOLTest.Filter ( filterTests, matchesCriterion )
+import SOLTest.Filter (filterTests, matchesCriterion)
 import SOLTest.Generators ()
 import SOLTest.Types
-    ( FilterCriterion(ByAny, ByCategory, ByTag),
-      FilterSpec(..),
-      TestCaseDefinition(tcdName, tcdCategory, tcdTags) )
+  ( FilterCriterion (ByAny, ByCategory, ByTag),
+    FilterSpec (..),
+    TestCaseDefinition (tcdCategory, tcdName, tcdTags),
+  )
 import Test.QuickCheck
 
 -- ---------------------------------------------------------------------------

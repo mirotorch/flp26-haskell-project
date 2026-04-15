@@ -18,11 +18,11 @@ where
 import Control.Exception (IOException, try)
 import Data.Maybe (fromMaybe)
 import SOLTest.Types
+import System.Directory (doesFileExist)
 import System.Exit (ExitCode (..))
 import System.IO (hClose, hPutStr)
 import System.IO.Temp (withSystemTempFile)
 import System.Process (proc, readCreateProcessWithExitCode)
-import System.Directory (doesFileExist)
 
 -- ---------------------------------------------------------------------------
 -- Public API

@@ -74,3 +74,11 @@ Pokud by Cabal házel nějaké divné chyby, zkuste nejprve `cabal clean`, pak `
 Přiložené property-based testy spustíte pomocí `cabal test`.
 
 Při vývoji se také může hodit příkaz `cabal repl`, který spustí interaktivní prostředí GHCi, do kterého automaticky načte všechny moduly z knihovny (které se povede přeložit). Metapříkazem `:r` je pak možné změněné moduly přeložit a znovu načíst.
+
+## Jak začít
+
+Aby se projekt vůbec přeložil, je nutné nejprve v `CLI.hs` správně vytvořit funkci `buildFilterSpec` – v tomto případě máte za úkol i přijít na její typovou signaturu, proto v projektu vůbec není.
+
+Některé funkce, které máte implementovat, jsou v šabloně definovány pomocí `= undefined`. Takové funkce se sice přeloží, ale jejich použití povede na chybu při běhu. Dalším krokem by tedy mohlo být doplnit na tato místa nějakou „dummy implementaci“ – tak, ať funkce vrátí nějakou výchozí hodnotu. Tímto způsobem se postupně seznámíte s typy, které v projektu používáte. Po doplnění takových výchozích hodnot pak začne projekt po spuštění i něco vypisovat.
+
+Dále už stačí jít funkci po funkci a postupně jednu po druhé ladit s využitím `cabal repl`. Jakmile budete mít pocit, že by všechno mělo aspoň nějak fungovat, spusťte své řešení s „dummy“ parserem a interpretem a zkoušejte, jak reaguje na různé případy. Doporučuji použít AI nástroje k vygenerování testovacích souborů, které pokrývají různé možné situace.
