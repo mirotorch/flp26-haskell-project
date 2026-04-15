@@ -164,5 +164,6 @@ filterSpecParser =
     buildFilterSpec i e ic it ec et =
       FilterSpec
         { fsIncludes = [ByAny x | x <- i] ++ [ByCategory x | x <- ic] ++ [ByTag x | x <- it],
-          fsExcludes = [ByAny x | x <- e] ++ [ByCategory x | x <- ec] ++ [ByTag x | x <- et] -- could also be done with map
+          fsExcludes = [ByAny x | x <- e] ++ [ByCategory x | x <- ec] ++ [ByTag x | x <- et], -- could also be done with map
+          fsUseRegex = False
         }
