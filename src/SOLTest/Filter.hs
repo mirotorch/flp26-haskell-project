@@ -36,7 +36,8 @@ filterTests ::
   FilterSpec ->
   [TestCaseDefinition] ->
   ([TestCaseDefinition], [TestCaseDefinition])
-filterTests spec tests = undefined
+filterTests FilterSpec {fsIncludes, fsExcludes} (x : xs) = undefined
+filterTests FilterSpec {fsIncludes, fsExcludes} [] = undefined
 
 -- | Check whether a test matches at least one criterion in the list.
 matchesAny :: Bool -> [FilterCriterion] -> TestCaseDefinition -> Bool
@@ -53,7 +54,9 @@ matchesAny useRegex criteria test =
 -- bonus extension, you can either remove the first argument and update the usages,
 -- or you can simply ignore the value.
 matchesCriterion :: Bool -> TestCaseDefinition -> FilterCriterion -> Bool
-matchesCriterion useRegex test criterion = undefined
+matchesCriterion _ TestCaseDefinition {tcdCategory = cat} (ByCategory fc) = cat == fc
+matchesCriterion _ TestCaseDefinition {tcdTags = tags} (ByTag fc) = fc `elem` tags
+matchesCriterion _ TestCaseDefinition {tcdCategory = cat, tcdTags = tags, tcdName = name} (ByAny fc) = and [cat == fc, name == fc, fc `elem` tags]
 
 -- | Trim leading and trailing whitespace from a filter identifier.
 trimFilterId :: String -> String
