@@ -36,8 +36,9 @@ filterTests ::
   FilterSpec ->
   [TestCaseDefinition] ->
   ([TestCaseDefinition], [TestCaseDefinition])
-filterTests FilterSpec {fsIncludes, fsExcludes} (x : xs) = undefined
-filterTests FilterSpec {fsIncludes, fsExcludes} [] = undefined
+filterTests FilterSpec {fsIncludes, fsExcludes} = foldr filter' ([], []) -- implementation with foldr, could also be done in a dumber way with inner recursive fn
+  where
+    filter' x (ys, zs) = if matchesAny False fsIncludes x && not (matchesAny False fsExcludes x) then (x : ys, zs) else (ys, x : zs)
 
 -- | Check whether a test matches at least one criterion in the list.
 matchesAny :: Bool -> [FilterCriterion] -> TestCaseDefinition -> Bool
@@ -54,9 +55,11 @@ matchesAny useRegex criteria test =
 -- bonus extension, you can either remove the first argument and update the usages,
 -- or you can simply ignore the value.
 matchesCriterion :: Bool -> TestCaseDefinition -> FilterCriterion -> Bool
-matchesCriterion _ TestCaseDefinition {tcdCategory = cat} (ByCategory fc) = cat == fc
-matchesCriterion _ TestCaseDefinition {tcdTags = tags} (ByTag fc) = fc `elem` tags
-matchesCriterion _ TestCaseDefinition {tcdCategory = cat, tcdTags = tags, tcdName = name} (ByAny fc) = and [cat == fc, name == fc, fc `elem` tags]
+matchesCriterion _ TestCaseDefinition {tcdCategory = cat} (ByCategory fc) = cat == trimFilterId fc
+matchesCriterion _ TestCaseDefinition {tcdTags = tags} (ByTag fc) = trimFilterId fc `elem` tags
+matchesCriterion _ TestCaseDefinition {tcdCategory = cat, tcdTags = tags, tcdName = name} (ByAny fc) = and [cat == tfc, name == tfc, tfc `elem` tags]
+  where
+    tfc = trimFilterId fc
 
 -- | Trim leading and trailing whitespace from a filter identifier.
 trimFilterId :: String -> String
