@@ -150,7 +150,6 @@ filterSpecParser =
       )
   where
     -- \| Assemble raw filter string lists into a 'FilterSpec'.
-    -- FLP: Implement this function (read the long comment above first).
 
     -- i've added where clause for better readability and because i love it
     buildFilterSpec ::

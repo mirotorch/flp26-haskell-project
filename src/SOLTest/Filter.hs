@@ -30,8 +30,6 @@ import SOLTest.Types
 -- * @filteredOut@ are the tests that were removed by filtering.
 --
 -- The union of @selected@ and @filteredOut@ always equals the input list.
---
--- FLP: Implement this function using @matchesAny@ and @matchesCriterion@.
 filterTests ::
   FilterSpec ->
   [TestCaseDefinition] ->
@@ -50,10 +48,6 @@ matchesAny useRegex criteria test =
 -- When @useRegex@ is 'False', matching is case-sensitive string equality.
 -- When @useRegex@ is 'True', the criterion value is treated as a POSIX
 -- regular expression matched against the relevant field(s).
---
--- FLP: Implement this function. If you're not implementing the regex matching
--- bonus extension, you can either remove the first argument and update the usages,
--- or you can simply ignore the value.
 matchesCriterion :: Bool -> TestCaseDefinition -> FilterCriterion -> Bool
 matchesCriterion _ TestCaseDefinition {tcdCategory = cat} (ByCategory fc) = cat == trimFilterId fc
 matchesCriterion _ TestCaseDefinition {tcdTags = tags} (ByTag fc) = trimFilterId fc `elem` tags
