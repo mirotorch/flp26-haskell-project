@@ -98,13 +98,21 @@ parseHeaderLine hdr line
       let val = trim (drop 4 line)
        in Right hdr {phDescription = Just val}
   -- ???
-  | "+++ " `isPrefixOf` line = Right hdr {phCategory = Just trim (drop 4 line)}
-  | "--- " `isPrefixOf` line = Right hdr {phTags = Just [trim (drop 4 line)]} -- FIXME: append tags?
+  | "+++ " `isPrefixOf` line = Right hdr {phCategory = Just format' x}
+  | "--- " `isPrefixOf` line = Right hdr {phTags = format' line : phTags hdr}
   -- normal read would stop the progam, using readMaybe version for type checking
-  | ">>> " `isPrefixOf` line = if IsJust (readMaybe s :: Maybe Int) then Right hdr {phWeight = trim (drop 4 line)} else Left "Malformed weight"
-  | "!C! " `isPrefixOf` line = if IsJust (readMaybe s :: Maybe Int) then Right hdr {phParserCodes = [trim (drop 4 line)]} else Left "Malformed parser code"
-  | "!I! " `isPrefixOf` line = if IsJust (readMaybe s :: Maybe Int) then Right hdr {phInterpreterCodes = [trim (drop 4 line)]} else Left "Malformed interpreter code"
+  | ">>> " `isPrefixOf` line = case readMaybe (format' line) of
+      Just x -> Right hdr {phWeight = Just x}
+      Nothing -> Left "Malformed weight"
+  | "!C! " `isPrefixOf` line = case readMaybe (format' line) of
+      Just x -> Right hdr {phParserCodes = n : phParserCodes hdr}
+      Nothing -> Left "Malformed parser code"
+  | "!I! " `isPrefixOf` line = case readMaybe (format' line) of
+      Just x -> Right hdr {phInterpreterCodes = n : phInterpreterCodes hdr}
+      Nothing -> Left "Malformed interpreter code"
   | otherwise = Right hdr -- unknown or comment line: skip
+  where
+    format' x = trim (drop 4 x)
 
 -- | Parse all header lines into a 'ParsedHeader'.
 --
