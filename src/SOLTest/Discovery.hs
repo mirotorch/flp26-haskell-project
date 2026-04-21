@@ -1,9 +1,11 @@
 -- | Discovering @.test@ files and their companion @.in@\/@.out@ files.
 module SOLTest.Discovery (discoverTests) where
 
+import Control.Monad (filterM, forM)
 import SOLTest.Types
 import System.Directory
-  ( doesFileExist,
+  ( doesDirectoryExist,
+    doesFileExist,
     listDirectory,
   )
 import System.FilePath (replaceExtension, takeBaseName, takeExtension, (</>))
@@ -13,18 +15,21 @@ import System.FilePath (replaceExtension, takeBaseName, takeExtension, (</>))
 -- When @recursive@ is 'True', subdirectories are searched recursively.
 -- Returns a list of 'TestCaseFile' records, one per @.test@ file found.
 -- The list is ordered by the file system traversal order (not sorted).
---
--- FLP: Implement this function. The following functions may come in handy:
---      @doesDirectoryExist@, @takeExtension@, @forM@ or @mapM@,
---      @findCompanionFiles@ (below).
 discoverTests :: Bool -> FilePath -> IO [TestCaseFile]
 discoverTests recursive dir = do
   entries <- listDirectory dir
   let fullPaths = map (dir </>) entries
   -- implementation
+  -- TODO: comment everything
   let tests = filter (\p -> takeExtension p == ".test") fullPaths
-
-  mapM findCompanionFiles tests
+  currentDirTests <- mapM findCompanionFiles tests
+  if recursive
+    then do
+      dirs <- filterM doesDirectoryExist fullPaths
+      nested' <- forM dirs (discoverTests True)
+      return $ currentDirTests ++ concat nested'
+    else
+      return currentDirTests
 
 -- | Build a 'TestCaseFile' for a given @.test@ file path, checking for
 -- companion @.in@ and @.out@ files in the same directory.
