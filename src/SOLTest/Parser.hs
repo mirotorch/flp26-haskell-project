@@ -202,11 +202,11 @@ parseTestFile tcf content = do
 -- For 'Combined' tests: if no @!C!@ codes were given, 'tcdExpectedParserExitCodes'
 -- is 'Nothing' (the parser must exit 0, which is implicit and not stored in the
 -- list); if @!C! 0@ was explicit, it is stored as @Just [0]@.
---
--- FLP: Implement this function.
 buildExitCodes :: TestCaseType -> ParsedHeader -> (Maybe [Int], Maybe [Int])
-buildExitCodes = undefined
-
+buildExitCodes ParseOnly h {phParserCodes} = (Just phParserCodes, Nothing) 
+buildExitCodes ExecuteOnly h {phInterpreterCodes} = (Nothing, Just phInterpreterCodes) 
+buildExitCodes Combined h {phParserCodes = [], phInterpreterCodes} = (Nothing, phInterpreterCodes)
+buildExitCodes Combined h {phParserCodes, phInterpreterCodes} = (phParserCodes, phInterpreterCodes)
 -- ---------------------------------------------------------------------------
 -- Utilities
 -- ---------------------------------------------------------------------------
