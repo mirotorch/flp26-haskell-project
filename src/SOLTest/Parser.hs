@@ -15,7 +15,8 @@ module SOLTest.Parser
 where
 
 import Data.Char (isSpace)
-import Data.List (isPrefixOf)
+import Data.List (break, isPrefixOf)
+import Data.List.Split (splitOn)
 import SOLTest.Types
   ( TestCaseDefinition (..),
     TestCaseFile
@@ -75,10 +76,10 @@ emptyHeader =
 --
 -- If there is no empty line, all lines are treated as header lines and the
 -- body is empty.
---
--- FLP: Implement this function.
 splitHeaderBody :: String -> ([String], String)
-splitHeaderBody content = undefined
+splitHeaderBody content =
+  let (before, rest) = break (all (`elem` " ")) $ lines content
+   in (before, unlines (drop 1 rest))
 
 -- ---------------------------------------------------------------------------
 -- Header line parsing
