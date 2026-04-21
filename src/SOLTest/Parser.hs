@@ -17,6 +17,7 @@ where
 import Data.Char (isSpace)
 import Data.List (break, isPrefixOf)
 import Data.List.Split (splitOn)
+import Data.Maybe (isJust)
 import SOLTest.Types
   ( TestCaseDefinition (..),
     TestCaseFile
@@ -27,6 +28,7 @@ import SOLTest.Types
       ),
     TestCaseType (..),
   )
+import Text.Read (readMaybe)
 
 -- ---------------------------------------------------------------------------
 -- Intermediate header type
@@ -90,14 +92,18 @@ splitHeaderBody content =
 -- Returns 'Left' with an error message if the line has a known prefix but
 -- a malformed value (e.g. a non-integer weight). Lines with unrecognised
 -- prefixes are silently ignored, as the spec does not prohibit extra lines.
---
--- FLP: Implement the rules for all accepted headers.
 parseHeaderLine :: ParsedHeader -> String -> Either String ParsedHeader
 parseHeaderLine hdr line
   | "*** " `isPrefixOf` line =
       let val = trim (drop 4 line)
        in Right hdr {phDescription = Just val}
   -- ???
+  | "+++ " `isPrefixOf` line = Right hdr {phCategory = Just trim (drop 4 line)}
+  | "--- " `isPrefixOf` line = Right hdr {phTags = Just [trim (drop 4 line)]} -- FIXME: append tags?
+  -- normal read would stop the progam, using readMaybe version for type checking
+  | ">>> " `isPrefixOf` line = if IsJust (readMaybe s :: Maybe Int) then Right hdr {phWeight = trim (drop 4 line)} else Left "Malformed weight"
+  | "!C! " `isPrefixOf` line = if IsJust (readMaybe s :: Maybe Int) then Right hdr {phParserCodes = [trim (drop 4 line)]} else Left "Malformed parser code"
+  | "!I! " `isPrefixOf` line = if IsJust (readMaybe s :: Maybe Int) then Right hdr {phInterpreterCodes = [trim (drop 4 line)]} else Left "Malformed interpreter code"
   | otherwise = Right hdr -- unknown or comment line: skip
 
 -- | Parse all header lines into a 'ParsedHeader'.
