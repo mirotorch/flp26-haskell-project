@@ -101,9 +101,29 @@ executeExecuteOnly interpPath test =
 --
 -- FLP: Implement this function. You'll use @withTempSource@ here.
 executeCombined :: FilePath -> FilePath -> TestCaseDefinition -> IO TestCaseReport
-executeCombined parserPath interpPath test = do
-  -- ?
-  return undefined
+executeCombined parserPath interpPath test =  withTempSource (tcdSourceCode test) $ \tmpPath -> do
+  (exitCode, pOut, pErr) <- runParser parserPath (tcdSourceCode test)
+  let parserCode = exitCodeToInt exitCode
+      result
+        | code `elem` expectedCodes = Passed
+        | otherwise = ParseFail
+      expectedCodes = fromMaybe [] (tcdExpectedParserExitCodes test)
+
+  (exitCode', iOut, iErr) <- runInterpreter interpPath tmpPath (tcdStdinFile test)
+  let interpretCode = exitCodeToInt exitCode'
+    expectedCodes = fromMaybe [] (tcdExpectedInterpreterExitCodes test)
+  (result, diffOut) <- checkInterpreterResult code expectedCodes iOut (tcdExpectedStdoutFile test)
+  
+  return TestCaseReport 
+        { tcrResult = result,
+          tcrParserExitCode = Just parserCode,
+          tcrInterpreterExitCode = Just code,
+          tcrParserStdout = Just pOut,
+          tcrParserStderr = Just pErr,
+          tcrInterpreterStdout = Just iOut,
+          tcrInterpreterStderr = Just iErr,
+          tcrDiffOutput = diffOut
+        }
 
 -- ---------------------------------------------------------------------------
 -- Process wrappers
