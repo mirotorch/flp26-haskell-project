@@ -18,7 +18,7 @@ where
 import Control.Exception (IOException, try)
 import Data.Maybe (fromMaybe)
 import SOLTest.Types
-import System.Directory (doesFileExist)
+import System.Directory (doesFileExist, executable, getPermissions)
 import System.Exit (ExitCode (..))
 import System.IO (hClose, hPutStr)
 import System.IO.Temp (withSystemTempFile)
@@ -234,17 +234,15 @@ withExecutable (Just path) action = do
 -- | Check that a file exists and has its executable bit set.
 -- The IO action returns 'Nothing' if the file is usable, or 'Just'
 -- an 'UnexecutedReason' describing the problem.
---
--- FLP: Implement this function. The following functions may come in handy:
---      @doesFileExist@, @getPermissions@, @executable@
 checkExecutable :: FilePath -> IO (Maybe UnexecutedReason)
 checkExecutable path = do
   result <- try (doesFileExist path) :: IO (Either IOException Bool)
   case result of
     Left err -> return (Just (UnexecutedReason CannotExecute (Just (show err))))
-    Right False -> undefined -- ???
-    Right True -> undefined -- ???
-  return Nothing -- this probably won't be here
+    Right False -> return (Just (UnexecutedReason CannotExecute (Just "File does not exist")))
+    Right True -> do
+      permissions <- getPermissions path
+      if executable permissions then return Nothing else return (Just (UnexecutedReason CannotExecute (Just "Missing permission")))
 
 -- | Convert 'ExitCode' to an 'Int'.
 exitCodeToInt :: ExitCode -> Int
