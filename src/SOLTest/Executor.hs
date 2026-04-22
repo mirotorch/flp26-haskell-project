@@ -101,29 +101,42 @@ executeExecuteOnly interpPath test =
 --
 -- FLP: Implement this function. You'll use @withTempSource@ here.
 executeCombined :: FilePath -> FilePath -> TestCaseDefinition -> IO TestCaseReport
-executeCombined parserPath interpPath test =  withTempSource (tcdSourceCode test) $ \tmpPath -> do
-  (exitCode, pOut, pErr) <- runParser parserPath (tcdSourceCode test)
-  let parserCode = exitCodeToInt exitCode
-      result
-        | code `elem` expectedCodes = Passed
-        | otherwise = ParseFail
-      expectedCodes = fromMaybe [] (tcdExpectedParserExitCodes test)
+executeCombined parserPath interpPath test =
+  withTempSource (tcdSourceCode test) $
+    \tmpPath -> do
+      (pExitCode, pOut, pErr) <- runParser parserPath (tcdSourceCode test)
+      let pCode = exitCodeToInt pExitCode
+          pExpectedCodes = fromMaybe [] (tcdExpectedParserExitCodes test)
 
-  (exitCode', iOut, iErr) <- runInterpreter interpPath tmpPath (tcdStdinFile test)
-  let interpretCode = exitCodeToInt exitCode'
-    expectedCodes = fromMaybe [] (tcdExpectedInterpreterExitCodes test)
-  (result, diffOut) <- checkInterpreterResult code expectedCodes iOut (tcdExpectedStdoutFile test)
-  
-  return TestCaseReport 
-        { tcrResult = result,
-          tcrParserExitCode = Just parserCode,
-          tcrInterpreterExitCode = Just code,
-          tcrParserStdout = Just pOut,
-          tcrParserStderr = Just pErr,
-          tcrInterpreterStdout = Just iOut,
-          tcrInterpreterStderr = Just iErr,
-          tcrDiffOutput = diffOut
-        }
+      if not $ pCode `elem` pExpectedCodes
+        then
+          return
+            TestCaseReport
+              { tcrResult = ParseFail,
+                tcrParserExitCode = Just pCode,
+                tcrInterpreterExitCode = Nothing,
+                tcrParserStdout = Just pOut,
+                tcrParserStderr = Just pErr,
+                tcrInterpreterStdout = Nothing,
+                tcrInterpreterStderr = Nothing,
+                tcrDiffOutput = Nothing
+              }
+        else do
+          (iExitCode, iOut, iErr) <- runInterpreter interpPath tmpPath (tcdStdinFile test)
+          let iCode = exitCodeToInt iExitCode
+              iExpectedCodes = fromMaybe [] (tcdExpectedInterpreterExitCodes test)
+          (result, diffOut) <- checkInterpreterResult iCode iExpectedCodes iOut (tcdExpectedStdoutFile test)
+          return
+            TestCaseReport
+              { tcrResult = result,
+                tcrParserExitCode = Just pCode,
+                tcrInterpreterExitCode = Just iCode,
+                tcrParserStdout = Just pOut,
+                tcrParserStderr = Just pErr,
+                tcrInterpreterStdout = Just iOut,
+                tcrInterpreterStderr = Just iErr,
+                tcrDiffOutput = diffOut
+              }
 
 -- ---------------------------------------------------------------------------
 -- Process wrappers
