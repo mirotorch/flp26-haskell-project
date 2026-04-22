@@ -15,9 +15,7 @@ module SOLTest.Parser
 where
 
 import Data.Char (isSpace)
-import Data.List (break, isPrefixOf)
-import Data.List.Split (splitOn)
-import Data.Maybe (isJust)
+import Data.List (isPrefixOf)
 import SOLTest.Types
   ( TestCaseDefinition (..),
     TestCaseFile
@@ -98,17 +96,17 @@ parseHeaderLine hdr line
       let val = trim (drop 4 line)
        in Right hdr {phDescription = Just val}
   -- ???
-  | "+++ " `isPrefixOf` line = Right hdr {phCategory = Just format' x}
+  | "+++ " `isPrefixOf` line = Right hdr {phCategory = Just (format' line)}
   | "--- " `isPrefixOf` line = Right hdr {phTags = format' line : phTags hdr}
   -- normal read would stop the progam, using readMaybe version for type checking
   | ">>> " `isPrefixOf` line = case readMaybe (format' line) of
       Just x -> Right hdr {phWeight = Just x}
       Nothing -> Left "Malformed weight"
   | "!C! " `isPrefixOf` line = case readMaybe (format' line) of
-      Just x -> Right hdr {phParserCodes = n : phParserCodes hdr}
+      Just x -> Right hdr {phParserCodes = x : phParserCodes hdr}
       Nothing -> Left "Malformed parser code"
   | "!I! " `isPrefixOf` line = case readMaybe (format' line) of
-      Just x -> Right hdr {phInterpreterCodes = n : phInterpreterCodes hdr}
+      Just x -> Right hdr {phInterpreterCodes = x : phInterpreterCodes hdr}
       Nothing -> Left "Malformed interpreter code"
   | otherwise = Right hdr -- unknown or comment line: skip
   where
@@ -203,10 +201,12 @@ parseTestFile tcf content = do
 -- is 'Nothing' (the parser must exit 0, which is implicit and not stored in the
 -- list); if @!C! 0@ was explicit, it is stored as @Just [0]@.
 buildExitCodes :: TestCaseType -> ParsedHeader -> (Maybe [Int], Maybe [Int])
-buildExitCodes ParseOnly h {phParserCodes} = (Just phParserCodes, Nothing) 
-buildExitCodes ExecuteOnly h {phInterpreterCodes} = (Nothing, Just phInterpreterCodes) 
-buildExitCodes Combined h {phParserCodes = [], phInterpreterCodes} = (Nothing, phInterpreterCodes)
-buildExitCodes Combined h {phParserCodes, phInterpreterCodes} = (phParserCodes, phInterpreterCodes)
+buildExitCodes ParseOnly ParsedHeader {phParserCodes} = (Just phParserCodes, Nothing)
+buildExitCodes ExecuteOnly ParsedHeader {phInterpreterCodes} = (Nothing, Just phInterpreterCodes)
+buildExitCodes Combined ParsedHeader {phParserCodes = [], phInterpreterCodes} = (Nothing, Just phInterpreterCodes)
+buildExitCodes Combined ParsedHeader {phParserCodes, phInterpreterCodes} = (Just phParserCodes, Just phInterpreterCodes)
+
+--      @doesFileExist@, @getPermissions@, @executable@
 -- ---------------------------------------------------------------------------
 -- Utilities
 -- ---------------------------------------------------------------------------
