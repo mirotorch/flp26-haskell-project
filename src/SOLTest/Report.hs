@@ -12,8 +12,10 @@ module SOLTest.Report
   )
 where
 
+import Data.List (foldl')
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
+import Data.Maybe (fromMaybe)
 import SOLTest.Types
 
 -- ---------------------------------------------------------------------------
@@ -55,23 +57,42 @@ buildReport discovered unexecuted mResults selected foundCount =
 -- one per category.
 --
 -- The @definitions@ list is used to look up each test's category and points.
---
--- FLP: Implement this function. The following functions may (or may not) come in handy:
---      @Map.fromList@, @Map.foldlWithKey'@, @Map.empty@, @Map.lookup@, @Map.insertWith@,
---      @Map.map@, @Map.fromList@
 groupByCategory ::
   [TestCaseDefinition] ->
   Map String TestCaseReport ->
   Map String CategoryReport
-groupByCategory definitions results = undefined
+groupByCategory definitions results = foldl' addTestToMap Map.empty definitions
+  where
+    addTestToMap acc def =
+      let category = tcdCategory def
+          points = tcdPoints def
+
+          mReport = Map.lookup (tcdName def) results
+
+          passedPoints = case mReport of
+            Just r | tcrResult r == Passed -> points
+            _ -> 0
+
+          newEntry =
+            CategoryReport
+              { crTotalPoints = points,
+                crPassedPoints = passedPoints,
+                crTestResults = maybe Map.empty (Map.singleton (tcdName def)) mReport
+              }
+       in Map.insertWith combineReports category newEntry acc
+
+    combineReports new old =
+      CategoryReport
+        { crTotalPoints = crTotalPoints new + crTotalPoints old,
+          crPassedPoints = crPassedPoints new + crPassedPoints old,
+          crTestResults = Map.union (crTestResults new) (crTestResults old)
+        }
 
 -- ---------------------------------------------------------------------------
 -- Statistics
 -- ---------------------------------------------------------------------------
 
 -- | Compute the 'TestStats' from available information.
---
--- FLP: Implement this function. You'll use @computeHistogram@ here.
 computeStats ::
   -- | Total @.test@ files found on disk.
   Int ->
@@ -82,7 +103,23 @@ computeStats ::
   -- | Category reports (Nothing in dry-run mode).
   Maybe (Map String CategoryReport) ->
   TestStats
-computeStats foundCount loadedCount selectedCount mCategoryResults = undefined
+computeStats foundCount loadedCount selectedCount mCategoryResults =
+  TestStats
+    { tsFoundTestFiles = foundCount,
+      tsLoadedTests = loadedCount,
+      tsSelectedTests = selectedCount,
+      tsPassedTests = totalPassed,
+      tsHistogram = histogram
+    }
+  where
+    catMap = fromMaybe Map.empty mCategoryResults
+    totalPassed = Map.foldl' passedInCat 0 catMap
+      where
+        passedInCat acc report =
+          let results = crTestResults report
+              numPassed = Map.size $ Map.filter (\r -> tcrResult r == Passed) results
+           in acc + numPassed
+    histogram = computeHistogram catMap
 
 -- ---------------------------------------------------------------------------
 -- Histogram
@@ -97,10 +134,22 @@ computeStats foundCount loadedCount selectedCount mCategoryResults = undefined
 -- The rate is mapped to a bin key (@\"0.0\"@ through @\"0.9\"@) and the count
 -- of categories in each bin is accumulated. All ten bins are always present in
 -- the result, even if their count is 0.
---
--- FLP: Implement this function.
 computeHistogram :: Map String CategoryReport -> Map String Int
-computeHistogram categories = undefined
+computeHistogram = Map.foldl' updateHistogram bins -- eta reduced
+  where
+    bins = Map.fromList [("0." ++ show i, 0) | i <- [(0 :: Integer) .. 9]]
+    updateHistogram acc report =
+      let results = crTestResults report
+          total = Map.size results
+          passed = Map.size $ Map.filter (\r -> tcrResult r == Passed) results
+
+          rate =
+            if total == 0
+              then 0.0
+              else fromIntegral passed / fromIntegral total
+
+          bin = rateToBin rate
+       in Map.adjust (+ 1) bin acc
 
 -- | Map a pass rate in @[0, 1]@ to a histogram bin key.
 --
