@@ -203,10 +203,12 @@ withTempSource content action =
 
 -- | Write the interpreter stdout to a temp file and diff it against @.out@.
 -- The file is deleted when the action returns.
---
--- FLP: Implement this function. It will start similarly to @withTempSource@.
 runDiffOnOutput :: String -> FilePath -> IO (TestResult, Maybe String)
-runDiffOnOutput iOut outFile = undefined
+runDiffOnOutput iOut outFile = withSystemTempFile "sol-source.xml" $ \tmpPath tmpHandle -> do
+  hPutStr tmpHandle iOut
+  hClose tmpHandle
+  (code, out) <- runDiff tmpPath outFile
+  if exitCodeToInt code == 0 then return (Passed, Just out) else return (DiffFail, Nothing)
 
 -- | Ensure an executable path is provided and the file is executable,
 -- then run an action with it.  Returns 'Left' 'CannotExecute' if the
