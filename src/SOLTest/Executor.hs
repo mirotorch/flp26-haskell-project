@@ -98,8 +98,6 @@ executeExecuteOnly interpPath test =
         }
 
 -- | Execute a 'Combined' test case.
---
--- FLP: Implement this function. You'll use @withTempSource@ here.
 executeCombined :: FilePath -> FilePath -> TestCaseDefinition -> IO TestCaseReport
 executeCombined parserPath interpPath test =
   withTempSource (tcdSourceCode test) $
@@ -178,8 +176,6 @@ runDiff actualFile expectedFile = do
 --
 -- Runs diff only when the interpreter exited with code 0 AND a @.out@ file
 -- is present.
---
--- FLP: Implement this function.
 checkInterpreterResult ::
   -- | Actual interpreter exit code.
   Int ->
@@ -190,7 +186,11 @@ checkInterpreterResult ::
   -- | Path to the @.out@ file, if present.
   Maybe FilePath ->
   IO (TestResult, Maybe String)
-checkInterpreterResult actualCode expectedCodes iOut mOutFile = undefined
+checkInterpreterResult 0 expectedCodes iOut (Just mOutFile) =
+  if 0 `notElem` expectedCodes then return (IntFail, Nothing) else runDiffOnOutput iOut mOutFile
+checkInterpreterResult actualCode expectedCodes _ _
+  | actualCode `elem` expectedCodes = return (Passed, Nothing)
+  | otherwise = return (IntFail, Nothing)
 
 -- | Write a string to a temporary file and pass its path to an action.
 -- The file is deleted when the action returns.
