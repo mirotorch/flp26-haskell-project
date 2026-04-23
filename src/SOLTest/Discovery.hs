@@ -20,13 +20,12 @@ discoverTests recursive dir = do
   entries <- listDirectory dir
   let fullPaths = map (dir </>) entries
   -- implementation
-  -- TODO: comment everything
   let tests = filter (\p -> takeExtension p == ".test") fullPaths
-  currentDirTests <- mapM findCompanionFiles tests
+  currentDirTests <- mapM findCompanionFiles tests -- map tests in current directory, mapM won't shut down the program in case of error
   if recursive
     then do
-      dirs <- filterM doesDirectoryExist fullPaths
-      nested' <- forM dirs (discoverTests True)
+      dirs <- filterM doesDirectoryExist fullPaths -- filter directories only
+      nested' <- forM dirs (discoverTests True) -- recursive call
       return $ currentDirTests ++ concat nested'
     else
       return currentDirTests

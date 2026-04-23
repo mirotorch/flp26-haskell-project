@@ -102,11 +102,11 @@ executeCombined :: FilePath -> FilePath -> TestCaseDefinition -> IO TestCaseRepo
 executeCombined parserPath interpPath test =
   withTempSource (tcdSourceCode test) $
     \tmpPath -> do
-      (pExitCode, pOut, pErr) <- runParser parserPath (tcdSourceCode test)
+      (pExitCode, pOut, pErr) <- runParser parserPath (tcdSourceCode test) -- run parser first
       let pCode = exitCodeToInt pExitCode
           pExpectedCodes = fromMaybe [] (tcdExpectedParserExitCodes test)
 
-      if not $ pCode `elem` pExpectedCodes
+      if not $ pCode `elem` pExpectedCodes -- if parser failed we end execution
         then
           return
             TestCaseReport
@@ -120,12 +120,12 @@ executeCombined parserPath interpPath test =
                 tcrDiffOutput = Nothing
               }
         else do
-          (iExitCode, iOut, iErr) <- runInterpreter interpPath tmpPath (tcdStdinFile test)
+          (iExitCode, iOut, iErr) <- runInterpreter interpPath tmpPath (tcdStdinFile test) -- run interpreter
           let iCode = exitCodeToInt iExitCode
               iExpectedCodes = fromMaybe [] (tcdExpectedInterpreterExitCodes test)
           (result, diffOut) <- checkInterpreterResult iCode iExpectedCodes iOut (tcdExpectedStdoutFile test)
           return
-            TestCaseReport
+            TestCaseReport -- return combined report
               { tcrResult = result,
                 tcrParserExitCode = Just pCode,
                 tcrInterpreterExitCode = Just iCode,
@@ -186,8 +186,10 @@ checkInterpreterResult ::
   -- | Path to the @.out@ file, if present.
   Maybe FilePath ->
   IO (TestResult, Maybe String)
+-- case when we need to run diff
 checkInterpreterResult 0 expectedCodes iOut (Just mOutFile) =
   if 0 `notElem` expectedCodes then return (IntFail, Nothing) else runDiffOnOutput iOut mOutFile
+-- otherwise simply check the code
 checkInterpreterResult actualCode expectedCodes _ _
   | actualCode `elem` expectedCodes = return (Passed, Nothing)
   | otherwise = return (IntFail, Nothing)
@@ -206,8 +208,8 @@ withTempSource content action =
 runDiffOnOutput :: String -> FilePath -> IO (TestResult, Maybe String)
 runDiffOnOutput iOut outFile = withSystemTempFile "sol-source.xml" $ \tmpPath tmpHandle -> do
   hPutStr tmpHandle iOut
-  hClose tmpHandle
-  (code, out) <- runDiff tmpPath outFile
+  hClose tmpHandle -- create and write tmp file just like in withTempSource
+  (code, out) <- runDiff tmpPath outFile -- run diff on our files
   if exitCodeToInt code == 0 then return (Passed, Just out) else return (DiffFail, Nothing)
 
 -- | Ensure an executable path is provided and the file is executable,
@@ -236,12 +238,13 @@ withExecutable (Just path) action = do
 -- an 'UnexecutedReason' describing the problem.
 checkExecutable :: FilePath -> IO (Maybe UnexecutedReason)
 checkExecutable path = do
-  result <- try (doesFileExist path) :: IO (Either IOException Bool)
+  result <- try (doesFileExist path) :: IO (Either IOException Bool) -- does file exist?
   case result of
-    Left err -> return (Just (UnexecutedReason CannotExecute (Just (show err))))
-    Right False -> return (Just (UnexecutedReason CannotExecute (Just "File does not exist")))
+    Left err -> return (Just (UnexecutedReason CannotExecute (Just (show err)))) -- error, returning exception description
+    Right False -> return (Just (UnexecutedReason CannotExecute (Just "File does not exist"))) -- doesn't exist, return CannotExecute
     Right True -> do
-      permissions <- getPermissions path
+      -- file exists
+      permissions <- getPermissions path -- get file permissions and check executable bit
       if executable permissions then return Nothing else return (Just (UnexecutedReason CannotExecute (Just "Missing permission")))
 
 -- | Convert 'ExitCode' to an 'Int'.

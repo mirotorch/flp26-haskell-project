@@ -36,6 +36,7 @@ filterTests ::
   ([TestCaseDefinition], [TestCaseDefinition])
 filterTests FilterSpec {fsIncludes, fsExcludes} = foldr filter' ([], []) -- implementation with foldr, could also be done in a dumber way with inner recursive fn
   where
+    -- if matches all fsIncludes and neither of fsExcludes, apend to selected, else filteredOut
     filter' x (ys, zs) = if matchesAny False fsIncludes x && not (matchesAny False fsExcludes x) then (x : ys, zs) else (ys, x : zs)
 
 -- | Check whether a test matches at least one criterion in the list.
@@ -49,9 +50,10 @@ matchesAny useRegex criteria test =
 -- When @useRegex@ is 'True', the criterion value is treated as a POSIX
 -- regular expression matched against the relevant field(s).
 matchesCriterion :: Bool -> TestCaseDefinition -> FilterCriterion -> Bool
+-- simply pick the respective part of the test case definition and compare it with criterion, pattern matching is very suitable for this task
 matchesCriterion _ TestCaseDefinition {tcdCategory = cat} (ByCategory fc) = cat == trimFilterId fc
 matchesCriterion _ TestCaseDefinition {tcdTags = tags} (ByTag fc) = trimFilterId fc `elem` tags
-matchesCriterion _ TestCaseDefinition {tcdCategory = cat, tcdTags = tags, tcdName = name} (ByAny fc) = and [cat == tfc, name == tfc, tfc `elem` tags]
+matchesCriterion _ TestCaseDefinition {tcdCategory = cat, tcdTags = tags, tcdName = name} (ByAny fc) = and [cat == tfc, name == tfc, tfc `elem` tags] -- check everything
   where
     tfc = trimFilterId fc
 

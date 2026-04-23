@@ -151,7 +151,6 @@ filterSpecParser =
   where
     -- \| Assemble raw filter string lists into a 'FilterSpec'.
 
-    -- i've added where clause for better readability and because i love it
     buildFilterSpec ::
       [String] ->
       [String] ->
@@ -162,7 +161,7 @@ filterSpecParser =
       FilterSpec
     buildFilterSpec i e ic it ec et =
       FilterSpec
-        { fsIncludes = [ByAny x | x <- i] ++ [ByCategory x | x <- ic] ++ [ByTag x | x <- it],
+        { fsIncludes = [ByAny x | x <- i] ++ [ByCategory x | x <- ic] ++ [ByTag x | x <- it], -- iterate over respective arguments
           fsExcludes = [ByAny x | x <- e] ++ [ByCategory x | x <- ec] ++ [ByTag x | x <- et], -- could also be done with map
           fsUseRegex = False
         }

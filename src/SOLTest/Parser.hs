@@ -78,8 +78,8 @@ emptyHeader =
 -- body is empty.
 splitHeaderBody :: String -> ([String], String)
 splitHeaderBody content =
-  let (before, rest) = break (all (`elem` " ")) $ lines content
-   in (before, unlines (drop 1 rest))
+  let (before, rest) = break (all (`elem` " ")) $ lines content -- split content on lines and then break the list on first element which is all spaces
+   in (before, unlines (drop 1 rest)) -- leave header as is, but join back body and drop the line with whitespace
 
 -- ---------------------------------------------------------------------------
 -- Header line parsing
@@ -93,12 +93,13 @@ splitHeaderBody content =
 parseHeaderLine :: ParsedHeader -> String -> Either String ParsedHeader
 parseHeaderLine hdr line
   | "*** " `isPrefixOf` line =
-      let val = trim (drop 4 line)
+      let val = format' line
        in Right hdr {phDescription = Just val}
-  -- ???
+  -- to update the hdr structure we can explicitly write only the parts we want to change
   | "+++ " `isPrefixOf` line = Right hdr {phCategory = Just (format' line)}
   | "--- " `isPrefixOf` line = Right hdr {phTags = format' line : phTags hdr}
   -- normal read would stop the progam, using readMaybe version for type checking
+  -- should all be integers
   | ">>> " `isPrefixOf` line = case readMaybe (format' line) of
       Just x -> Right hdr {phWeight = Just x}
       Nothing -> Left "Malformed weight"
@@ -110,7 +111,7 @@ parseHeaderLine hdr line
       Nothing -> Left "Malformed interpreter code"
   | otherwise = Right hdr -- unknown or comment line: skip
   where
-    format' x = trim (drop 4 x)
+    format' x = trim (drop 4 x) -- support function for line formatting
 
 -- | Parse all header lines into a 'ParsedHeader'.
 --
@@ -201,6 +202,7 @@ parseTestFile tcf content = do
 -- is 'Nothing' (the parser must exit 0, which is implicit and not stored in the
 -- list); if @!C! 0@ was explicit, it is stored as @Just [0]@.
 buildExitCodes :: TestCaseType -> ParsedHeader -> (Maybe [Int], Maybe [Int])
+-- use pattern matching
 buildExitCodes ParseOnly ParsedHeader {phParserCodes} = (Just phParserCodes, Nothing)
 buildExitCodes ExecuteOnly ParsedHeader {phInterpreterCodes} = (Nothing, Just phInterpreterCodes)
 buildExitCodes Combined ParsedHeader {phParserCodes = [], phInterpreterCodes} = (Nothing, Just phInterpreterCodes)
