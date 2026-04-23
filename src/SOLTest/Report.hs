@@ -65,23 +65,22 @@ groupByCategory definitions results = foldl' addTestToMap Map.empty definitions
   where
     addTestToMap acc def =
       let category = tcdCategory def
-          points = tcdPoints def
-
+          points = tcdPoints def -- unpack test structure
           mReport = Map.lookup (tcdName def) results
 
-          passedPoints = case mReport of
+          passedPoints = case mReport of -- did test passed?
             Just r | tcrResult r == Passed -> points
             _ -> 0
 
           newEntry =
+            -- construct new temporary record
             CategoryReport
               { crTotalPoints = points,
                 crPassedPoints = passedPoints,
-                crTestResults = maybe Map.empty (Map.singleton (tcdName def)) mReport
+                crTestResults = maybe Map.empty (Map.singleton (tcdName def)) mReport -- singleton map with one record which will be merged with acc
               }
-       in Map.insertWith combineReports category newEntry acc
-
-    combineReports new old =
+       in Map.insertWith updateRecord category newEntry acc
+    updateRecord new old =
       CategoryReport
         { crTotalPoints = crTotalPoints new + crTotalPoints old,
           crPassedPoints = crPassedPoints new + crPassedPoints old,
@@ -108,7 +107,7 @@ computeStats foundCount loadedCount selectedCount mCategoryResults =
     { tsFoundTestFiles = foundCount,
       tsLoadedTests = loadedCount,
       tsSelectedTests = selectedCount,
-      tsPassedTests = totalPassed,
+      tsPassedTests = totalPassed, -- only need to compute this and histogram
       tsHistogram = histogram
     }
   where
@@ -116,9 +115,10 @@ computeStats foundCount loadedCount selectedCount mCategoryResults =
     totalPassed = Map.foldl' passedInCat 0 catMap
       where
         passedInCat acc report =
-          let results = crTestResults report
-              numPassed = Map.size $ Map.filter (\r -> tcrResult r == Passed) results
-           in acc + numPassed
+          -- fucntion to compute how many tests passed in this category
+          let results = crTestResults report -- results maped by name of the test
+              numPassed = Map.size $ Map.filter (\r -> tcrResult r == Passed) results -- filter those which passed
+           in acc + numPassed -- update accumulator
     histogram = computeHistogram catMap
 
 -- ---------------------------------------------------------------------------
@@ -137,19 +137,19 @@ computeStats foundCount loadedCount selectedCount mCategoryResults =
 computeHistogram :: Map String CategoryReport -> Map String Int
 computeHistogram = Map.foldl' updateHistogram bins -- eta reduced
   where
-    bins = Map.fromList [("0." ++ show i, 0) | i <- [(0 :: Integer) .. 9]]
+    bins = Map.fromList [("0." ++ show i, 0) | i <- [(0 :: Integer) .. 9]] -- generate bins as described above
     updateHistogram acc report =
       let results = crTestResults report
-          total = Map.size results
-          passed = Map.size $ Map.filter (\r -> tcrResult r == Passed) results
-
+          total = Map.size results -- total count of tests
+          passed = Map.size $ Map.filter (\r -> tcrResult r == Passed) results -- filter only those which passed
           rate =
+            -- compute rate
             if total == 0
               then 0.0
               else fromIntegral passed / fromIntegral total
 
           bin = rateToBin rate
-       in Map.adjust (+ 1) bin acc
+       in Map.adjust (+ 1) bin acc -- update map
 
 -- | Map a pass rate in @[0, 1]@ to a histogram bin key.
 --
